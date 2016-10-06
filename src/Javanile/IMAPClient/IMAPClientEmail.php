@@ -1,6 +1,6 @@
 <?php
 
-
+namespace Javanile\IMAPClient;
 
 ##
 class gmail_fetch_client_mail {
