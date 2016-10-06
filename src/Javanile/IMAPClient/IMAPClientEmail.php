@@ -1,12 +1,18 @@
 <?php
+/**
+ * 
+ * 
+ */
 
 namespace Javanile\IMAPClient;
 
-##
-class gmail_fetch_client_mail {
-	
-	##
-	private $inbox = null;
+class IMAPClientEmail 
+{
+    /**
+     *
+     * @var type 
+     */
+	private $stream = null;
 	
 	##
 	private $number = null;
@@ -28,18 +34,32 @@ class gmail_fetch_client_mail {
     
     private $client = null;
 
-	##
-	public function __construct(&$inbox, $number, $path, $client) {
-		$this->inbox  = &$inbox;
-		$this->number = $number;				
-		$this->path   = $path;
-        $this->client = $client;
+	/**
+     * 
+     * @param type $client
+     * @param type $stream
+     * @param type $number
+     */
+	public function __construct(&$client, &$stream, $number) 
+    {
+        //
+        $this->client = &$client;
+		
+        //
+        $this->stream = &$stream;
+		
+        //
+        $this->number = $number;				
 	}
 	
-	##
-	public function open() {		
-		$this->overview = imap_fetch_overview($this->inbox,$this->number,0);
-		$this->structure = imap_fetchstructure($this->inbox, $this->number ,0);
+	/**
+     * 
+     * 
+     */
+	public function open() 
+    {		
+		$this->overview = imap_fetch_overview($this->stream,$this->number,0);
+		$this->structure = imap_fetchstructure($this->stream, $this->number ,0);
 		preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b/i',$this->overview[0]->from,$data);		
 		$this->from_email = $data[0];      
 	}
@@ -68,7 +88,7 @@ class gmail_fetch_client_mail {
     public function testMessageId($id)
     {
         ##
-        $this->overview = imap_fetch_overview($this->inbox,$this->number,0);
+        $this->overview = imap_fetch_overview($this->stream,$this->number,0);
         
         ##
         return $this->overview[0]->message_id ==  $id;
@@ -87,7 +107,7 @@ class gmail_fetch_client_mail {
 		
 		foreach($this->structure->parts as $fpos=>$part) {
 			if (isset($part->disposition) && $part->disposition == "ATTACHMENT") {				
-				$out[] = new gmail_fetch_client_attachment($this->inbox,$this->number,$fpos,$part,$this->path);
+				$out[] = new gmail_fetch_client_attachment($this->stream,$this->number,$fpos,$part,$this->path);
 			}
 		}
 		
@@ -127,9 +147,9 @@ class gmail_fetch_client_mail {
             } else {
                 $mode = 1;
             }
-            $this->body = quoted_printable_decode(imap_fetchbody($this->inbox, $this->number, $mode));
+            $this->body = quoted_printable_decode(imap_fetchbody($this->stream, $this->number, $mode));
             if (!$this->overview[0]->seen) {
-                imap_clearflag_full($this->inbox, ''.$this->number, "\\Seen");
+                imap_clearflag_full($this->stream, ''.$this->number, "\\Seen");
             }            
         }
         return $this->body; 
@@ -147,7 +167,7 @@ class gmail_fetch_client_mail {
         $folder = trim($foldername);
         
         //
-		imap_mail_move($this->inbox, $this->number, $folder);	
+		imap_mail_move($this->stream, $this->number, $folder);	
         
         //
         if (imap_errors()) 
@@ -159,7 +179,7 @@ class gmail_fetch_client_mail {
             if (!imap_errors()) 
             {
                 //
-                imap_mail_move($this->inbox, $this->number, $folder);	           
+                imap_mail_move($this->stream, $this->number, $folder);	           
             }
         }
         
@@ -183,14 +203,14 @@ class gmail_fetch_client_mail {
         $this->client->setFolder($folder);
         
         ##
-        $emails = imap_search($this->inbox, $search);
+        $emails = imap_search($this->stream, $search);
      
         ##
         if ($emails && count($emails) > 0) {
             foreach ($emails as $i) {
-                $o = imap_fetch_overview($this->inbox,$i,0);
+                $o = imap_fetch_overview($this->stream,$i,0);
                 if ($o[0]->message_id == $my_message_id) {
-                    imap_delete($this->inbox, $i);
+                    imap_delete($this->stream, $i);
                     return;
                 }
             }

@@ -32,6 +32,12 @@ class IMAPClient
      * @var type 
      */
 	private $password = null;
+    
+    /**
+     *
+     * @var type 
+     */
+	private $provider = null;
 	
     /**
      * 
@@ -67,7 +73,7 @@ class IMAPClient
         $this->provider = Functions::getEmailProvider($this->username);
         
         //
-        if (!isset($args['host']) || $args['host'])
+        if (!isset($args['host']) || !$args['host'])
         {
             switch ($this->provider)
             {
@@ -75,10 +81,11 @@ class IMAPClient
             }
         } 
        
+        //
         $this->host = $args['host'];
         
         //
-        if (!isset($args['port']) || $args['port'])
+        if (!isset($args['port']) || !$args['port'])
         {
             switch ($this->provider)
             {
@@ -86,10 +93,11 @@ class IMAPClient
             }
         }
         
+        //
  		$this->port = $args['port'];
 		
         //
-        if (!isset($args['mailbox']) || $args['mailbox']) 
+        if (!isset($args['mailbox']) || !$args['mailbox']) 
         {
             switch ($this->provider)
             {
@@ -102,14 +110,16 @@ class IMAPClient
             }
         }
         
+        //
         $this->mailbox = $args['mailbox'];
         
         //
-        if (!isset($args['path']) || $args['path'])
+        if (!isset($args['path']) || !$args['path'])
         {
             $args['path'] = sys_get_temp_dir().'/Javanile/IMAPClient';
         }
         
+        //
 		$this->path = rtrim($args['path'],'/').'/'.$this->username.'/'.time();		
 	}
 	
@@ -125,11 +135,6 @@ class IMAPClient
 			$this->username,
 			$this->password
 		);
-        
-        var_dump(imap_errors());
-        
-        
-        var_dump(imap_errors());
         
         //
         return $this->success();
@@ -148,22 +153,23 @@ class IMAPClient
 	##
 	public function getEmails()
     {	
-		##
-		$out = array();
+		//
+		$array = array();
 		
-		##
-		$emails = imap_search($this->stream,'ALL');		
+		//
+		$emails = imap_search($this->stream, 'ALL');		
        
-		##
-		if ($emails) {			
-			rsort($emails);		
-			foreach($emails as $number) { 
-				$out[] = new gmail_fetch_client_mail($this->stream,$number,$this->path,$this);
+		//
+		if ($emails) 
+        {			
+			foreach($emails as $number) 
+            { 
+				$array[] = new IMAPClientEmail($this, $this->stream, $number);
 			}			
 		}
 
-		##
-		return $out;		
+		//
+		return $array;		
 	}
 
     ##
@@ -325,10 +331,13 @@ class IMAPClient
         );
 
         //
-        return !imap_errors();
+        return $this->success();
     }
 
-	##
+	/**
+     * 
+     * 
+     */
 	public function close()
     {		
         //
@@ -348,7 +357,7 @@ class IMAPClient
         $this->errors = imap_errors();
         
         //
-        return !count($this->errors);
+        return !$this->errors || !count( $this->errors );
     }
     
     /**
@@ -373,7 +382,7 @@ class IMAPClient
         //
         foreach ($this->errors as $error)    
         {
-            $message .= ' - '.$error."\n<br/>";
+            $message .= ' - ERROR: '.$error.'<br/>';
         }
         
         //
