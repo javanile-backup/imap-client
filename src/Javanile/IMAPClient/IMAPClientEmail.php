@@ -164,7 +164,7 @@ class gmail_fetch_client_mail {
         }
         
         //
-        return !imap_errors();
+        return $this->success();
 	}
 
     ##
@@ -244,6 +244,16 @@ class gmail_fetch_client_mail {
     ##
     public function getHash() {
         return md5($this->overview[0]->message_id.@$this->overview[0]->subject);
+    }
+    
+    /**
+     * 
+     * 
+     */
+    private function success()
+    {
+        //
+        return !count(imap_errors());
     }
 }
 

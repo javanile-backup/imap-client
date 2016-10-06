@@ -120,14 +120,19 @@ class IMAPClient
 	public function login() 
     {
         //
-		$this->stream = imap_open(
-			$this->host,
+		$this->stream = @imap_open(
+			$this->mailbox,
 			$this->username,
 			$this->password
 		);
-
-        ##
-        return !imap_errors();
+        
+        var_dump(imap_errors());
+        
+        
+        var_dump(imap_errors());
+        
+        //
+        return $this->success();
 	}
 	
 	##
@@ -306,20 +311,21 @@ class IMAPClient
         die();
     }
 
-    ##
+    /**
+     * 
+     * @param type $folder
+     * @return type
+     */
     public function setFolder($folder) 
     {
-        ##
-        imap_reopen($this->stream, "{imap.gmail.com:993/imap/ssl/novalidate-cert}{$folder}");
+        //
+        @imap_reopen(
+            $this->stream, 
+            $this->mailbox . $folder
+        );
 
-        ##
-        $errors = imap_errors();
-
-        ##
-        if ($errors) {
-            var_dump($errors);
-            die();
-        }
+        //
+        return !imap_errors();
     }
 
 	##
@@ -331,5 +337,47 @@ class IMAPClient
         //
         imap_close($this->stream, CL_EXPUNGE);
 	}
+    
+    /**
+     * 
+     * 
+     */
+    private function success()
+    {
+        //
+        $this->errors = imap_errors();
+        
+        //
+        return !count($this->errors);
+    }
+    
+    /**
+     * 
+     * 
+     */
+    public function errors()
+    {
+        //
+        return $this->errors;
+    }
+    
+    /**
+     * 
+     * 
+     */
+    public function printableErrors()
+    {
+        //
+        $message = "";
+       
+        //
+        foreach ($this->errors as $error)    
+        {
+            $message .= ' - '.$error."\n<br/>";
+        }
+        
+        //
+        return $message;
+    }
 }
 
