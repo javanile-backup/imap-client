@@ -12,44 +12,84 @@ class IMAPClientEmail
      *
      * @var type 
      */
-	private $stream = null;
-	
-	##
-	private $number = null;
-	
-	##
-	private $from_email = null;
-
-	##
-	private $path = null;
-
-    ##
-    private $body = null;
-
-    ##
-    private $summary = null;
-
-    ##
-    private $hasAttachments = null;
-    
     private $client = null;
 
+    /**
+     *
+     * @var type 
+     */
+	private $stream = null;
+	
+	/**
+     *
+     * @var type 
+     */
+	private $number = null;
+	
+	/**
+     *
+     * @var type 
+     */
+	private $from_email = null;
+    
+    /**
+     *
+     * @var type 
+     */
+	private $overview = null;
+    
+    /**
+     *
+     * @var type 
+     */
+	private $structure = null;
+
+    /**
+     *
+     * @var type 
+     */
+	private $msgno = null;
+    
+    /**
+     *
+     * @var type 
+     */
+	private $uid = null;
+
+    /**
+     *
+     * @var type 
+     */
+    private $body = null;
+
+    /**
+     *
+     * @var type 
+     */
+    private $summary = null; 
+
+    /**
+     *
+     * @var type 
+     */
+    private $hasAttachments = null;
+    
 	/**
      * 
      * @param type $client
      * @param type $stream
      * @param type $number
      */
-	public function __construct(&$client, &$stream, $number) 
+	public function __construct($client, $stream, $number) 
     {
         //
-        $this->client = &$client;
+        $this->client = $client;
 		
         //
-        $this->stream = &$stream;
+        $this->stream = $stream;
 		
         //
-        $this->number = $number;				
+        $this->number = $number;	
 	}
 	
 	/**
@@ -58,11 +98,76 @@ class IMAPClientEmail
      */
 	public function open() 
     {		
-		$this->overview = imap_fetch_overview($this->stream,$this->number,0);
-		$this->structure = imap_fetchstructure($this->stream, $this->number ,0);
-		preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b/i',$this->overview[0]->from,$data);		
-		$this->from_email = $data[0];      
+        //
+		$this->requireOverview();
+        
+        //
+        $this->requireStructure();
 	}
+    
+    /**
+     * 
+     * 
+     */
+    private function requireOverview()
+    {
+        //
+        if (!$this->overview)
+        {
+            //
+            $this->overview = @imap_fetch_overview(
+                $this->stream, 
+                $this->number, 
+                0
+            );
+            
+            //
+            
+          
+            //
+            $from = null;
+            
+            //
+            preg_match(
+                '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}\b/i',
+                $this->overview[0]->from, 
+                $from
+            );		
+           
+            //
+            $this->from_email = $from[0];    
+            
+            //
+            if (!$this->overview[0]->message_id) 
+            {
+                $this->overview[0]->message_id = md5(
+                    $this->overview[0]->date.
+                    $this->overview[0]->from.
+                    $this->overview[0]->to
+                );
+            }
+            
+            //
+            $this->msgno = $this->overview[0]->msgno;
+            
+            //
+            $this->uid = $this->overview[0]->uid;
+        }
+    }
+    
+    /**
+     * 
+     * 
+     */
+    private function requireStructure()
+    {
+        //
+        if (!$this->structure)
+        {
+            //
+            $this->structure = imap_fetchstructure($this->stream, $this->number ,0);
+        }
+    }
 
     ##
     public function getFrom() {
@@ -94,15 +199,22 @@ class IMAPClientEmail
         return $this->overview[0]->message_id ==  $id;
     }
     
-    ##
+    /**
+     * 
+     * @return type
+     */
     public function getMessageId()
     {
-        ##
+        //
+        $this->requireOverview();
+        
+        //
         return $this->overview[0]->message_id;
     }
     
 	##
-	public function getAttachments() {
+	public function getAttachments() 
+    {
 		$out = array();
 		
 		foreach($this->structure->parts as $fpos=>$part) {
@@ -187,55 +299,70 @@ class IMAPClientEmail
         return $this->success();
 	}
 
-    ##
+    /**
+     * 
+     * @param type $folder
+     * @return type
+     */
     public function deleteFromFolder($folder)
     {
-        ##
-        $my_message_id = $this->getMessageId();
-        
-        ##
-        $date = $this->getDate('Y-m-d');
-        $since = date('Y-m-d',strtotime('-1 days',strtotime($date)));
-        $before = date('Y-m-d',strtotime('+1 days',strtotime($date)));
-        $search = "SINCE {$since} BEFORE {$before}";
-           
-        ##
+        //
+        $id     = $this->getMessageId();
+        $date   = $this->getDate('Y-m-d');
+        $since  = date('Y-m-d',strtotime('-1 days', strtotime($date)));
+        $before = date('Y-m-d',strtotime('+1 days', strtotime($date)));
+        $query  = "SINCE {$since} BEFORE {$before}";
+               
+        //
         $this->client->setFolder($folder);
         
-        ##
-        $emails = imap_search($this->stream, $search);
+        //
+        $emails = $this->client->search($query);
      
-        ##
-        if ($emails && count($emails) > 0) {
-            foreach ($emails as $i) {
-                $o = imap_fetch_overview($this->stream,$i,0);
-                if ($o[0]->message_id == $my_message_id) {
-                    imap_delete($this->stream, $i);
-                    return;
-                }
+        //
+        if ($emails && count($emails) > 0) 
+        {
+            //
+            foreach ($emails as $email)
+            {
+                //
+                echo $email->getMessageId().' == '.$id ."\n";
             }
         }
         
-        ##
-        return !imap_errors();
+        //
+        return $this->success();
     }
     
-    ##
+    /**
+     * 
+     * 
+     */
     public function deleteFromAllFolder()
     {
         //
         $folders = $this->client->getFolders();
-        
-        
-        var_Dump($folders);
-        
-        die();
+       
+        //
+        foreach ($folders as $folder)
+        {
+            //
+            $this->deleteFromFolder($folder);  
+        }
     }    
     
-    ##
+    /**
+     * 
+     * @param type $format
+     * @return type
+     */
     public function getDate($format=null) 
     {
-        return date($format ? $format : 'd/m/Y', strtotime($this->overview[0]->date));
+        //
+        $this->requireOverview();
+        
+        //
+        return date($format ? $format : 'Y-m-d', strtotime($this->overview[0]->date));
     }
 
     ##

@@ -139,18 +139,37 @@ class IMAPClient
         //
         return $this->success();
 	}
-	
-	##
-	public function createFolder($folder) 
-    {
-        ##
-        imap_createmailbox($this->stream,"{$this->host}$folder");
-        
-        ##
-		return !imap_errors();
+    
+    /**
+     * 
+     * @return \Javanile\IMAPClient\IMAPClientEmail
+     */
+	public function search($query)
+    {	
+		//
+		$array = array();
+		
+		//
+		$emails = imap_search($this->stream, $query);		
+       
+        //
+		if ($emails) 
+        {			
+            //
+			foreach ($emails as $number) 
+            { 
+				$array[] = new IMAPClientEmail($this, $this->stream, $number);
+			}			
+		}
+
+		//
+		return $array;		
 	}
 	
-	##
+    /**
+     * 
+     * @return \Javanile\IMAPClient\IMAPClientEmail
+     */
 	public function getEmails()
     {	
 		//
@@ -162,6 +181,7 @@ class IMAPClient
 		//
 		if ($emails) 
         {			
+            //
 			foreach($emails as $number) 
             { 
 				$array[] = new IMAPClientEmail($this, $this->stream, $number);
@@ -171,32 +191,40 @@ class IMAPClient
 		//
 		return $array;		
 	}
+	
 
-    ##
-	public function getEmailsSince($since) {
-
-		##
-		$out = array();
+    /**
+     * 
+     * @param type $since
+     * @return \Javanile\IMAPClient\gmail_fetch_client_mail
+     */
+	public function getEmailsSince($since)
+    {
+		//
+		$array = array();
 		
-		##
-		$emails = imap_search($this->stream,'SINCE '.$since);
+		//
+		$emails = imap_search($this->stream, 'SINCE '.$since);
 
-		##
-		if ($emails) {
-			rsort($emails);
-			foreach($emails as $number) {
-				$out[] = new gmail_fetch_client_mail($this->stream,$number,$this->path,$this);
+		//
+		if ($emails) 
+        {
+            //
+			foreach($emails as $number) 
+            {
+                //
+				$array[] = new IMAPClientEmail($this, $this->stream, $number);
 			}
 		}
 
-		##
-		return $out;
+		//
+		return $array;
 	}
 
 
     ##
-	public function getAllEmails() {
-
+	public function getAllEmails()
+    {
 		##
 		$out = array();
 
@@ -245,21 +273,22 @@ class IMAPClient
 	public function getEmailsOnDate($date)
     {
 		//
-		$out = array();
+		$array = array();
 
 		//
-		$emails = imap_search($this->stream,"ON {$date}");
+		$emails = imap_search($this->stream, "ON {$date}");
        
 		//
 		if ($emails)
         {
-			foreach($emails as $number) {
-				$out[] = new gmail_fetch_client_mail($this->stream,$number,$this->path, $this);
+			foreach($emails as $number)
+            {
+				$array[] = new IMAPClientEmail($this, $this->stream, $number);
 			}
 		}
 
 		//
-		return $out;
+		return $array;
 	}
     
     ##
@@ -309,12 +338,16 @@ class IMAPClient
    
     }
 
-    ##
-    public function getFolders() {
-        $list = imap_list($this->stream, "{imap.gmail.com:993/imap/ssl/novalidate-cert}", "*");
+    /**
+     * 
+     */
+    public function getFolders() 
+    {
+        //
+        $folders = @imap_list($this->stream, $this->mailbox, '*');
         
-        var_dump($list);
-        die();
+        //
+        return $folders;
     }
 
     /**
@@ -325,15 +358,31 @@ class IMAPClient
     public function setFolder($folder) 
     {
         //
-        @imap_reopen(
+        if ($folder[0] == '{')
+        {
+            $folder = substr($folder, strpos($folder, '}') + 1);
+        }
+            
+        //
+        imap_reopen(
             $this->stream, 
             $this->mailbox . $folder
         );
-
+        
         //
         return $this->success();
     }
 
+    ##
+	public function createFolder($folder) 
+    {
+        ##
+        imap_createmailbox($this->stream,"{$this->host}$folder");
+        
+        ##
+		return !imap_errors();
+	}
+    
 	/**
      * 
      * 
