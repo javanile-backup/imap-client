@@ -1,6 +1,15 @@
 <?php
 
-##
+
+namespace Javanile\IMAPClient;
+
+
+
+/**
+ * 
+ * 
+ * 
+ */
 class IMAPClient 
 {
 	
@@ -50,17 +59,23 @@ class IMAPClient
         'December'
     );
 	
-	##
-	public function __construct($username,$password,$path=null) {
+	/**
+     * 
+     * @param type $args
+     */
+	public function __construct($args)
+    {
 		
+        
+        
 		##
 		error_reporting(E_ALL);
 		ini_set("display_errors",1);
 		
 		##
 		$this->hostname = '{imap.gmail.com:993/imap/ssl/novalidate-cert}';
-		$this->username = $username;
-		$this->password = $password;
+		$this->username = $args['username'];
+		$this->password = $args['password'];
 
 		##
 		$this->path = rtrim($path,'/').'/'.$username.'/'.time();		
